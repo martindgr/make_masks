@@ -95,7 +95,44 @@ def find_centroids(img_path) :
                 continue
         return out
     ################################################################
-
+    
+    
+    
+    
+    ################################################################
+    # From a list of bolt positions and circle parameters, orders bolts in clockwise order starting from top over 360 degrees
+    
+    #returns a list of bolts in clockwise order 
+    def order_bolts(circle, bolt_ring) :
+        out = []
+        
+        #circle parameters
+        circ_x = circle[0]
+        circ_y = circle[1]
+        circ_r = circle[2]
+        L = int(circ_r*1)  
+        
+        #bolt locations found beforehand
+        nodes = np.asarray(bolt_ring)
+        
+        #loop over 2pi in (60 for now) steps finding closest bolts
+        for i in np.linspace(0, 2*3.14159, num=60) : 
+            
+            #point on circle (scaled by radius of hough transform) to search near
+            search_x = int(circ_x + L*np.sin(i))
+            search_y = int(circ_y - L*np.cos(i))
+            
+            #find bolt closest to point
+            dist = np.sum((nodes - [search_y,search_x])**2, axis=1)
+            closest = np.argmin(dist)
+            
+            #only append each bolt coordinate once
+            if bolt_ring[closest] not in out :
+                out.append(bolt_ring[closest])
+               
+        return out
+    
+    ################################################################
 
 
 
@@ -107,17 +144,18 @@ def find_centroids(img_path) :
     #loop over circles and find bolts, end up with list of circles, each a list of bolts (no circle parameters are saved )
     for i in circles[0, :] :
         bolt_ring = ret_centres(bolts_gray, i)
-        bolt_centres.append(bolt_ring)
-    
+        bolts_ord = order_bolts(i, bolt_ring)
+
         #Draw hough circles on img
         cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
         cv2.circle(img,(i[0],i[1]),2,(0,255,0),3)
 
-
-    #draw bolt locations
-    for i in bolt_centres :
-        for j in i :
-            cv2.circle(img, (j[1], j[0]), 5, (0,0,255), -1)
+        #draw bolt locations and number them 
+        bolt_no = 0
+        for i in bolts_ord :
+            bolt_no += 1
+            cv2.putText(img, f'{bolt_no}', (i[1], i[0]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1)
+  
 
 
     print(bolt_centres)
